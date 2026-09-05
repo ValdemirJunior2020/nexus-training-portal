@@ -23,7 +23,7 @@ if errorlevel 1 (
     pause
     exit /b 1
   )
-  start "llama.cpp" cmd /k "llama-server -m "%~dp0agents\nexus\models\nexus-model.gguf" -c 8192 -ngl 20 --host 127.0.0.1 --port 8080"
+  start "llama.cpp" cmd /k "llama-server -m "%~dp0agents\nexus\models\nexus-model.gguf" -c 16384 -ngl 20 --host 127.0.0.1 --port 8080"
   timeout /t 3 /nobreak >nul
 )
 

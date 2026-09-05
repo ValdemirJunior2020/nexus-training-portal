@@ -14,13 +14,13 @@ export async function POST(request: NextRequest) {
     "Analyze the case using the authoritative Ticket Matrix when relevant.",
     "Do not invent requirements that are not explicitly supported by the Matrix.",
     "Return: concern, matched Matrix rule(s), required next actions, escalation/ticket/refund/VIPRES requirements when applicable, and a concise internal-note suggestion.",
-    "Clearly distinguish official Matrix requirements from any learned memory or inference.",
+    "Clearly distinguish official Matrix requirements from learned memory or inference.",
     "CASE:",
     caseText,
   ].join("\n\n");
 
   try {
-    const res = await fetch(`${NEXUS_URL}/agent/run`, {
+    const res = await fetch(`${NEXUS_URL}/queue/jobs`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -29,11 +29,24 @@ export async function POST(request: NextRequest) {
         user_id: trainer,
         mode: "qa",
         engine: "nexus",
-        allow_tools: true,
+        allow_tools: false,
         allow_learning: false,
       }),
       cache: "no-store",
     });
+    const text = await res.text();
+    if (!res.ok) return NextResponse.json({ error: text || `Nexus returned ${res.status}` }, { status: res.status });
+    return NextResponse.json(JSON.parse(text));
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Nexus unavailable" }, { status: 503 });
+  }
+}
+
+export async function GET(request: NextRequest) {
+  const jobId = request.nextUrl.searchParams.get("job_id");
+  if (!jobId) return NextResponse.json({ error: "job_id is required" }, { status: 400 });
+  try {
+    const res = await fetch(`${NEXUS_URL}/queue/jobs/${encodeURIComponent(jobId)}`, { cache: "no-store" });
     const text = await res.text();
     if (!res.ok) return NextResponse.json({ error: text || `Nexus returned ${res.status}` }, { status: res.status });
     return NextResponse.json(JSON.parse(text));

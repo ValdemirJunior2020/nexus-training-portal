@@ -216,12 +216,39 @@ function TrainingPortal() {
   const refreshMemories = useCallback(async () => { try { const r = await fetch(`/api/training/memories?user_id=${encodeURIComponent(trainer)}`); const d = await r.json(); setMemories(Array.isArray(d.memories) ? d.memories : []); } catch {} }, [trainer]);
   useEffect(() => { refreshMemories(); }, [refreshMemories]);
   const analyze = async () => {
-    if (!caseText.trim() || busy) return; setBusy(true); setResult(null); setMessage(""); setProgress(4); setStage("Reading training case…");
-    const stages = [[18,"Identifying the concern…"],[36,"Searching Ticket Matrix…"],[58,"Nexus is reasoning…"],[78,"Checking learned context…"],[91,"Preparing trainer review…"]] as const; let idx = 0;
-    const timer = setInterval(() => { if (idx < stages.length) { setProgress(stages[idx][0]); setStage(stages[idx][1]); idx++; } }, 900);
-    try { const r = await fetch("/api/training/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ caseText, trainer, sessionId: `training-${Date.now()}` }) }); const d = await r.json(); if (!r.ok) throw new Error(d.error || "Training analysis failed"); setResult(d); setProgress(100); setStage("Ready for trainer review"); }
-    catch (e) { setMessage(e instanceof Error ? e.message : "Training analysis failed"); setProgress(0); setStage(""); }
-    finally { clearInterval(timer); setBusy(false); }
+    if (!caseText.trim() || busy) return;
+    setBusy(true); setResult(null); setMessage(""); setProgress(4); setStage("Joining Nexus queue…");
+    const fmt = (seconds: number) => { const s = Math.max(0, Math.round(seconds || 0)); const m = Math.floor(s / 60); const r = s % 60; return m ? `${m}m ${r}s` : `${r}s`; };
+    try {
+      const submit = await fetch("/api/training/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ caseText, trainer, sessionId: `training-${Date.now()}` }) });
+      const queued = await submit.json();
+      if (!submit.ok) throw new Error(queued.error || "Could not join Nexus queue");
+      const jobId = String(queued.job_id || "");
+      if (!jobId) throw new Error("Nexus queue did not return a job ID");
+
+      while (true) {
+        const r = await fetch(`/api/training/analyze?job_id=${encodeURIComponent(jobId)}`, { cache: "no-store" });
+        const job = await r.json();
+        if (!r.ok) throw new Error(job.error || "Could not read queue status");
+        if (job.status === "queued") {
+          setProgress(Math.min(24, 6 + Number(job.waited_seconds || 0) / 10));
+          setStage(`Waiting in line — position ${job.position} · waited ${fmt(job.waited_seconds)} · est. ${fmt(job.estimated_wait_seconds)}`);
+        } else if (job.status === "running") {
+          const ratio = Number(job.running_seconds || 0) / Math.max(1, Number(job.average_job_seconds || 120));
+          setProgress(Math.min(91, 30 + ratio * 58));
+          setStage(`Nexus is analyzing — ${fmt(job.running_seconds)} elapsed · est. ${fmt(job.estimated_wait_seconds)} left`);
+        } else if (job.status === "done") {
+          setResult(job.result); setProgress(100); setStage("Ready for trainer review"); break;
+        } else if (job.status === "error") {
+          throw new Error(job.error || "Training analysis failed");
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "Training analysis failed"); setProgress(0); setStage("");
+    } finally {
+      setBusy(false);
+    }
   };
   const feedback = async (rating: number, teach = false) => {
     const correctionText = correction.trim(); if (teach && !correctionText) { setMessage("Write the correction first."); return; }

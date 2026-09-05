@@ -26,3 +26,16 @@ Added the original browser experience back as the single workspace for Nexus dev
 
 ## Future Zendesk
 The browser trainer and Zendesk sidebar use the same Nexus backend, policy knowledge, learned memory, and logs.
+
+## Queue + long Zendesk ticket reliability update
+- Added a FIFO Nexus job queue so multiple trainers can submit cases safely.
+- Browser shows queue position, elapsed wait time, and rolling estimated wait.
+- Chat and Training both use the same queue.
+- One local inference job runs at a time to protect VRAM/context stability.
+- Training strips low-value Zendesk audit noise such as URLs, IP-only lines, webhook/client metadata, and playlist timestamps.
+- QA specialist work is limited to two sequential specialists.
+- QA tool routing is disabled for Matrix-only training reviews.
+- QA review is capped to one verification pass to avoid repeated context overflow.
+- llama.cpp output budget defaults to 1024 tokens per internal call.
+- llama.cpp model ID is discovered automatically from /v1/models.
+- START_ALL.bat now launches llama.cpp with a 16384 context.

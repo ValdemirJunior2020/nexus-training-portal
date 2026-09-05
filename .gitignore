@@ -1,0 +1,10 @@
+node_modules/
+.next/
+out/
+.env
+.env.local
+*.log
+agents/nexus/.venv/
+agents/nexus/nexus_memory.db
+agents/nexus/workspace/*
+!agents/nexus/workspace/README.txt

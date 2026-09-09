@@ -1,0 +1,26 @@
+{
+  "name": "Nexus Zendesk Copilot",
+  "author": {
+    "name": "HotelPlanner / Nexus",
+    "email": "valdemir.goncalves@hotelplanner.com",
+    "url": "https://hotelplanner.com"
+  },
+  "defaultLocale": "en",
+  "private": true,
+  "singleInstall": true,
+  "signedUrls": true,
+  "version": "1.0.0",
+  "frameworkVersion": "2.0",
+  "location": {
+    "support": {
+      "ticket_sidebar": {
+        "url": "http://localhost:3000/zendesk/sidebar",
+        "autoLoad": true,
+        "flexible": true
+      }
+    }
+  },
+  "domainWhitelist": [
+    "localhost"
+  ]
+}

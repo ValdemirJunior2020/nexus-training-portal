@@ -19,6 +19,7 @@ const seed = (): ControlDb => ({
   users: [
     { email: "April.Grantham@HotelPlanner.com", displayName: "April Grantham", role: "super_admin", enabled: true },
     { email: "karen.caldas@hotelplanner.com", displayName: "Karen Caldas", role: "admin", enabled: true },
+    { email: "valdemir.goncalves@hotelplanner.com", displayName: "Valdemir Goncalves", role: "admin", enabled: true },
   ],
   centers: [], matrixRules: [], audit: [], training: [],
   settings: { serverEnabled: true, maintenanceMode: false, maxQueueJobs: 100, maxConcurrentJobs: 1, queueWarningMinutes: 10, cloudflareTunnelName: "NEXUS-ZENDESK-AGENT", cloudflareTunnelId: "0dc09a1c-c395-4a4c-b501-5ec4fd855202" },

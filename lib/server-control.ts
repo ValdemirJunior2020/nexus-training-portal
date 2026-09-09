@@ -9,6 +9,9 @@ export type AuditItem = { id: string; at: string; actor: string; action: string;
 export type TrainingItem = { id: string; at: string; trainer: string; ticketId?: string; itinerary?: string; original?: string; correction: string; status: "pending" | "approved" | "rejected"; approver?: string };
 export type ControlDb = { users: User[]; centers: Center[]; matrixRules: MatrixRule[]; audit: AuditItem[]; training: TrainingItem[]; settings: Record<string, unknown> };
 
+export const HOTELPLANNER_DOMAIN = "hotelplanner.com";
+export const HOTELPLANNER_AUTH_ERROR = "This email is not authorized to work on HotelPlanner tickets. Please sign in with an @hotelplanner.com account.";
+
 const SUPER = "april.grantham@hotelplanner.com";
 const ADMIN = "karen.caldas@hotelplanner.com";
 const TRAINERS = new Set([SUPER, ADMIN]);
@@ -27,6 +30,14 @@ const seed = (): ControlDb => ({
 
 let writeChain = Promise.resolve();
 const normalize = (v: string) => v.trim().toLowerCase();
+export function isHotelPlannerEmail(email: string) {
+  const value = normalize(email);
+  const at = value.lastIndexOf("@");
+  return at > 0 && value.slice(at + 1) === HOTELPLANNER_DOMAIN;
+}
+export function assertHotelPlannerEmail(email: string) {
+  if (!isHotelPlannerEmail(email)) throw new Error("HOTELPLANNER_EMAIL_REQUIRED");
+}
 
 async function ensureDb() {
   await fs.mkdir(DATA_DIR, { recursive: true });
@@ -38,18 +49,30 @@ export async function writeDb(db: ControlDb) {
   writeChain = writeChain.then(async () => { const tmp = DB_FILE + ".tmp"; await fs.writeFile(tmp, JSON.stringify(db, null, 2), "utf8"); await fs.rename(tmp, DB_FILE); });
   await writeChain;
 }
-export async function getUser(email: string) { const db = await readDb(); return db.users.find(u => normalize(u.email) === normalize(email)); }
+export async function getUser(email: string) {
+  if (!isHotelPlannerEmail(email)) return undefined;
+  const db = await readDb();
+  return db.users.find(u => normalize(u.email) === normalize(email));
+}
 export async function canUse(email: string) {
+  if (!isHotelPlannerEmail(email)) return false;
   const db = await readDb(); const user = db.users.find(u => normalize(u.email) === normalize(email));
   if (!user?.enabled || db.settings.serverEnabled === false || db.settings.maintenanceMode === true) return false;
   if (user.centerId) { const center = db.centers.find(c => c.id === user.centerId); if (!center?.enabled) return false; }
   return true;
 }
-export async function requireRole(email: string, roles: Role[]) { const user = await getUser(email); if (!user?.enabled || !roles.includes(user.role)) throw new Error("FORBIDDEN"); return user; }
-export function canTrain(email: string) { return TRAINERS.has(normalize(email)); }
-export function isSuper(email: string) { return normalize(email) === SUPER; }
+export async function requireRole(email: string, roles: Role[]) {
+  assertHotelPlannerEmail(email);
+  const user = await getUser(email);
+  if (!user?.enabled || !roles.includes(user.role)) throw new Error("FORBIDDEN");
+  return user;
+}
+export function canTrain(email: string) { return isHotelPlannerEmail(email) && TRAINERS.has(normalize(email)); }
+export function isSuper(email: string) { return isHotelPlannerEmail(email) && normalize(email) === SUPER; }
 export async function saveUser(actor: string, input: Partial<User> & { email: string }) {
-  await requireRole(actor, ["super_admin", "admin"]); const db = await readDb(); const idx = db.users.findIndex(u => normalize(u.email) === normalize(input.email)); const before = idx >= 0 ? db.users[idx] : undefined;
+  await requireRole(actor, ["super_admin", "admin"]);
+  assertHotelPlannerEmail(input.email);
+  const db = await readDb(); const idx = db.users.findIndex(u => normalize(u.email) === normalize(input.email)); const before = idx >= 0 ? db.users[idx] : undefined;
   let role = (input.role || before?.role || "agent") as Role; if (role === "super_admin" && !isSuper(actor)) throw new Error("SUPER_ONLY"); if (normalize(input.email) === SUPER) role = "super_admin";
   const user: User = { email: input.email.trim(), displayName: input.displayName || before?.displayName || "", role, centerId: input.centerId || undefined, enabled: input.enabled ?? before?.enabled ?? true };
   if (idx >= 0) db.users[idx] = user; else db.users.push(user); db.audit.unshift({ id: crypto.randomUUID(), at: new Date().toISOString(), actor, action: "user.save", target: user.email, before, after: user }); await writeDb(db); return user;

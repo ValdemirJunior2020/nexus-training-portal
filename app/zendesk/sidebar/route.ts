@@ -12,14 +12,13 @@ function verifyRs256(token: string, publicKey: string, audience: string) {
   const parts = token.split(".");
   if (parts.length !== 3) throw new Error("INVALID_ZAF_TOKEN");
   const [encodedHeader, encodedPayload, encodedSignature] = parts;
-  const header = JSON.parse(b64urlDecode(encodedHeader).toString("utf8")) as { alg?: string; typ?: string };
+  const header = JSON.parse(b64urlDecode(encodedHeader).toString("utf8")) as { alg?: string };
   const payload = JSON.parse(b64urlDecode(encodedPayload).toString("utf8")) as Record<string, unknown>;
   if (header.alg !== "RS256") throw new Error("INVALID_ZAF_ALGORITHM");
-  const signature = b64urlDecode(encodedSignature);
   const verifier = crypto.createVerify("RSA-SHA256");
   verifier.update(`${encodedHeader}.${encodedPayload}`);
   verifier.end();
-  if (!verifier.verify(publicKey, signature)) throw new Error("INVALID_ZAF_SIGNATURE");
+  if (!verifier.verify(publicKey, b64urlDecode(encodedSignature))) throw new Error("INVALID_ZAF_SIGNATURE");
   const now = Math.floor(Date.now() / 1000);
   if (typeof payload.exp !== "number" || payload.exp < now) throw new Error("EXPIRED_ZAF_TOKEN");
   if (typeof payload.nbf === "number" && payload.nbf > now) throw new Error("EARLY_ZAF_TOKEN");
@@ -31,14 +30,12 @@ function verifyRs256(token: string, publicKey: string, audience: string) {
 function html(status: "ok" | "error", message = "") {
   const safe = JSON.stringify(message).replace(/</g, "\\u003c");
   const boot = JSON.stringify({ status, message }).replace(/</g, "\\u003c");
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Nexus Zendesk Copilot</title><style>html,body{margin:0;padding:0;background:#101318;color:#f4f7fb;font:13px/1.4 system-ui,-apple-system,Segoe UI,sans-serif}#app{min-height:180px}</style></head><body><div id="app"></div><script>window.__NEXUS_ZAF_BOOT__=${boot};window.__NEXUS_ZAF_MESSAGE__=${safe};</script><script src="https://static.zdassets.com/zendesk_app_framework_sdk/2.0/zaf_sdk.min.js"></script><script src="/zendesk-app/runtime.js"></script></body></html>`;
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Nexus Zendesk Copilot</title><link rel="stylesheet" href="/zendesk-app/styles.css"></head><body><div id="app"></div><script>window.__NEXUS_ZAF_BOOT__=${boot};window.__NEXUS_ZAF_MESSAGE__=${safe};</script><script src="https://static.zdassets.com/zendesk_app_framework_sdk/2.0/zaf_sdk.min.js"></script><script src="/zendesk-app/runtime.js"></script></body></html>`;
 }
 
-export async function GET(request: NextRequest) {
-  if (process.env.NEXUS_ZENDESK_DEV_MODE === "true") {
-    return new Response(html("ok"), { headers: { "Content-Type": "text/html; charset=utf-8" } });
-  }
-  return new Response(html("error", "Nexus Zendesk app requires a signed Zendesk request. Install the private app with signedUrls enabled."), { status: 403, headers: { "Content-Type": "text/html; charset=utf-8" } });
+export async function GET() {
+  if (process.env.NEXUS_ZENDESK_DEV_MODE === "true") return new Response(html("ok"), { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } });
+  return new Response(html("error", "Nexus Zendesk app requires a signed Zendesk request. Install the private app with signedUrls enabled."), { status: 403, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } });
 }
 
 export async function POST(request: NextRequest) {

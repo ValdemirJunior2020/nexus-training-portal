@@ -14,13 +14,13 @@
   "location": {
     "support": {
       "ticket_sidebar": {
-        "url": "https://NEXUS_HOST/zendesk/sidebar",
+        "url": "http://localhost:3000/zendesk/sidebar",
         "autoLoad": true,
         "flexible": true
       }
     }
   },
   "domainWhitelist": [
-    "NEXUS_HOST"
+    "localhost"
   ]
 }

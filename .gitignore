@@ -8,3 +8,5 @@ agents/nexus/.venv/
 agents/nexus/nexus_memory.db
 agents/nexus/workspace/*
 !agents/nexus/workspace/README.txt
+data/zendesk-control.json
+data/zendesk-control.json.tmp

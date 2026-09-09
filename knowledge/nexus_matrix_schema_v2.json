@@ -1,0 +1,34 @@
+{
+  "matrix_version": "2026.09-v2",
+  "source": "HotelPlanner Official Ticket Matrix",
+  "authority": "official",
+  "description": "Nexus production rule schema. Matrix rules remain the highest priority source of truth.",
+  "priority_order": [
+    "official_matrix",
+    "official_sop",
+    "zendesk_knowledge",
+    "approved_training",
+    "historical_examples"
+  ],
+  "rule_structure": {
+    "rule_id": "unique_rule_identifier",
+    "category": "matrix_category",
+    "issue_name": "matrix_issue_name",
+    "conditions": [],
+    "required_actions": [],
+    "validation_rules": [],
+    "agent_workflow": "full_workflow_text",
+    "matrix_flags": {
+      "slack": "NO|YES",
+      "refund_queue": "NO|YES",
+      "create_ticket": "NO|YES",
+      "supervisor_review": "NO|YES",
+      "vipres_routing": "NO"
+    },
+    "audit": {
+      "version": "1.0",
+      "approval": "approved"
+    }
+  },
+  "rules": []
+}

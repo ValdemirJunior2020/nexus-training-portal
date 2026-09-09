@@ -1,0 +1,5 @@
+import { NextRequest, NextResponse } from "next/server";
+import { submit } from "../../../../lib/server-queue";
+import { readDb } from "../../../../lib/server-control";
+export const runtime = "nodejs"; export const dynamic = "force-dynamic";
+export async function POST(req: NextRequest){ try { const email=req.headers.get("x-nexus-user")||""; const payload=await req.json(); payload.user_id=email; const db=await readDb(); const rules=db.matrixRules.filter(r=>r.enabled); if(rules.length){ const summary=rules.map(r=>`[${r.section}] ${r.issue}: ${r.instructions}`).join("\n"); payload.reservation_context=[payload.reservation_context||"",`ADMIN MATRIX RULES (official local additions; existing Nexus Ticket Matrix remains authoritative):\n${summary}`].filter(Boolean).join("\n\n"); } const job=await submit(email,payload); return NextResponse.json(job,{status:202}); } catch(e){ const m=e instanceof Error?e.message:"Unknown error"; return NextResponse.json({error:m},{status:m==="ACCESS_DISABLED"?403:m==="QUEUE_FULL"?429:500}); } }

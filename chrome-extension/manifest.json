@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Nexus Zendesk Copilot",
+  "version": "1.0.0",
+  "description": "HotelPlanner Zendesk copilot powered by the local Nexus server.",
+  "permissions": ["storage", "notifications"],
+  "host_permissions": ["https://hotelplanner.zendesk.com/*", "http://127.0.0.1/*", "http://localhost/*"],
+  "optional_host_permissions": ["https://*/*", "http://*/*"],
+  "background": { "service_worker": "dist/background.js" },
+  "content_scripts": [{"matches": ["https://hotelplanner.zendesk.com/*"], "js": ["dist/content.js"], "run_at": "document_idle"}],
+  "options_page": "options.html",
+  "action": { "default_title": "Nexus Zendesk Copilot" }
+}

@@ -1,0 +1,2 @@
+import { NextRequest, NextResponse } from "next/server"; import { saveSetting } from "../../../../lib/server-control";
+export const runtime="nodejs"; export async function POST(req:NextRequest){try{const actor=req.headers.get("x-nexus-user")||""; const {key,value}=await req.json(); return NextResponse.json({ok:true,key,value:await saveSetting(actor,key,value)});}catch(e){return NextResponse.json({error:e instanceof Error?e.message:"Error"},{status:403});}}
